@@ -4,15 +4,15 @@ Dnsmasq for OpenWrt
 简介
 ---
 
- 本项目是 [Dnsmasq][1] 在 OpenWrt 上的移植与功能增强  
- 当前版本: 2.72-4  
- [预编译 IPK 下载][3]  
+ 本项目是 [dnsmasq][1] 在 OpenWrt 上的移植与功能增强  
+ 当前版本: 2.75 
 
-特性
+
+dnsmasq从2.73版本开始具有以下功能
 ---
 
- - 添加 `--ignore-address` 选项, 忽略指定的 IP, 防止 DNS劫持  
- - 添加 `--min-cache-ttl` 选项, 可设置 DNS缓存最小有效期  
+ - `--ignore-address` 选项, 忽略指定的 IP, 过滤虚假DNS答复  
+ - `--min-cache-ttl` 选项, 可设置 DNS缓存最小有效期 
 
 编译
 ---
@@ -24,25 +24,14 @@ Dnsmasq for OpenWrt
    tar xjf OpenWrt-SDK-ar71xx-for-linux-x86_64-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2
    cd OpenWrt-SDK-ar71xx-*
    # 下载 Patch & Makefile
-   git clone https://github.com/aa65535/openwrt-dnsmasq.git package/dnsmasq
-   # 选择要编译的包 Base system -> dnsmasq
+   git clone https://github.com/lixingcong/openwrt-dnsmasq.git package/dnsmasq
+   # 选择要编译的包 （实际上可以选择full版，更强大，但是体积大）
+   # Base system -> dnsmasq 
    make menuconfig
    # 开始编译
-   make package/dnsmasq/compile V=99
-   ```
-
- - 其他平台将 Patch 应用到 dnsmasq 源码后编译  
-
-   ```bash
-   # 下载代码
-   wget http://thekelleys.org.uk/dnsmasq/dnsmasq-2.72.tar.gz
-   git clone https://github.com/aa65535/openwrt-dnsmasq.git
-   # 打 Patch
-   tar xzf dnsmasq-2.72.tar.gz
-   cd dnsmasq*
-   patch -p1 < ../openwrt-dnsmasq/patches/111-feature-enhancement.patch
-   # 开始编译
-   make
+   make package/dnsmasq/compile V=99 
+   # 找到包
+   cd bin/ar71xx/packages/base && ls -l
    ```
 
 配置

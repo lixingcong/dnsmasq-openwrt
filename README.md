@@ -14,6 +14,8 @@ dnsmasq从2.73版本开始具有以下功能
  - `--ignore-address` 选项, 忽略指定的 IP, 过滤虚假DNS答复  
  - `--min-cache-ttl` 选项, 可设置 DNS缓存最小有效期 
 
+必须赞一下上面这两个功能的提交者是[@aa65535](https://github.com/aa65535/openwrt-dnsmasq) ，他深深体会到GFW所害的广大中国网友无法获得纯净dns之苦恼，在v2ex发过的帖子[《dnsmasq: 新添加一个 --ignore-address 选项》](https://www.v2ex.com/t/157952)讲述如何commit给dnsmasq开发者的，勇气可嘉。
+
 编译
 ---
 

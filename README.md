@@ -56,11 +56,11 @@ dnsmasq从2.73版本开始具有以下功能
 
   [1]: http://www.thekelleys.org.uk/dnsmasq/doc.html
   [3]: https://sourceforge.net/projects/openwrt-dist/files/dnsmasq/
-  [4]: https://github.com/aa65535/openwrt-dnsmasq/blob/master/files/dnsmasq.conf
+  [4]: https://github.com/lixingcong/dnsmasq-openwrt/blob/master/files/dnsmasq.conf
   [5]: https://github.com/aa65535/openwrt-chinadns
   [6]: https://github.com/aa65535/openwrt-shadowvpn
   [7]: https://github.com/shadowsocks/openwrt-shadowsocks
-  [8]: https://github.com/aa65535/openwrt-dnsmasq/tree/master/etc
+  [8]: https://github.com/lixingcong/dnsmasq-openwrt/tree/master/etc
   [R]: https://github.com/aa65535/openwrt-redsocks2
   [S]: http://wiki.openwrt.org/doc/howto/obtain.firmware.sdk
   [L]: https://github.com/aa65535/openwrt-dist-luci

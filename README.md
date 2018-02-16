@@ -8,7 +8,7 @@ This is the [dnsmasq-regex](https://github.com/lixingcong/dnsmasq-regex) Makefil
 
 克隆仓库，检出分支
 
-### OpenWrt
+For OpenWrt:
 
 	# 以 OpenWrt 15.05 的ar71xx 平台为例
 	tar xjf OpenWrt-SDK-ar71xx-for-linux-x86_64-gcc-4.8-linaro_uClibc-0.9.33.2.tar.bz2
@@ -17,7 +17,7 @@ This is the [dnsmasq-regex](https://github.com/lixingcong/dnsmasq-regex) Makefil
 	# 克隆openwrt分支
 	git clone -b openwrt https://github.com/lixingcong/dnsmasq-regex-openwrt package/dnsmasq
 
-### LEDE
+For LEDE:
 
 	# 以 LEDE 17.01.4 的ar71xx 平台为例
 	tar xjf lede-sdk-17.01.4-ar71xx-generic_gcc-5.4.0_musl-1.1.16.Linux-x86_64.tar.xz
@@ -26,7 +26,7 @@ This is the [dnsmasq-regex](https://github.com/lixingcong/dnsmasq-regex) Makefil
 	# 克隆lede分支
 	git clone -b lede https://github.com/lixingcong/dnsmasq-regex-openwrt package/dnsmasq
 
-编译
+Build it:
 
 	# 选择要编译的dnsmasq，按M键选中
 	# Base system -> dnsmasq 
@@ -39,6 +39,7 @@ This is the [dnsmasq-regex](https://github.com/lixingcong/dnsmasq-regex) Makefil
 	find bin | grep dnsmasq
 
 
-## Regex domains config examples
+## Regex match domains config
 
-[conf-files-example](https://github.com/lixingcong/dnsmasq-regex-openwrt/tree/master/conf-files-example)
+	# Example here:
+	https://github.com/lixingcong/dnsmasq-regex-openwrt/blob/lede/conf-files-example/dnsmasq.conf

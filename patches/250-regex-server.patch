@@ -54,18 +54,18 @@
  #else
 --- a/src/dnsmasq.h
 +++ b/src/dnsmasq.h
-@@ -145,6 +145,10 @@ extern int capget(cap_user_header_t head
- #include <priv.h>
+@@ -149,6 +149,10 @@ extern int capget(cap_user_header_t head
+ #  include <nettle/nettle-meta.h>
  #endif
  
 +#ifdef HAVE_REGEX
 +#include <pcre.h>
 +#endif
 +
- #ifdef HAVE_DNSSEC
- #  include <nettle/nettle-meta.h>
- #endif
-@@ -509,6 +513,7 @@ union mysockaddr {
+ /* daemon is function in the C library.... */
+ #define daemon dnsmasq_daemon
+ 
+@@ -513,6 +517,7 @@ union mysockaddr {
  #define SERV_LOOP           8192  /* server causes forwarding loop */
  #define SERV_DO_DNSSEC     16384  /* Validate DNSSEC when using this server */
  #define SERV_GOT_TCP       32768  /* Got some data from the TCP connection */
@@ -73,7 +73,7 @@
  
  struct serverfd {
    int fd;
-@@ -535,6 +540,10 @@ struct server {
+@@ -539,6 +544,10 @@ struct server {
    u32 uid;
  #endif
    struct server *next; 
@@ -170,20 +170,18 @@
  static int forward_query(int udpfd, union mysockaddr *udpaddr,
  			 struct all_addr *dst_addr, unsigned int dst_iface,
  			 struct dns_header *header, size_t plen, time_t now, 
-@@ -307,7 +360,12 @@ static int forward_query(int udpfd, unio
+@@ -307,6 +360,11 @@ static int forward_query(int udpfd, unio
  #endif
  
        /* retry on existing query, send to all available servers  */
--      domain = forward->sentto->domain;
 +#ifdef HAVE_REGEX
 +      if(forward->sentto->flags & SERV_IS_REGEX)
 +          domain = daemon->namebuff;
 +      else
 +#endif
-+          domain = forward->sentto->domain;
+       domain = forward->sentto->domain;
        forward->sentto->failed_queries++;
        if (!option_bool(OPT_ORDER))
- 	{
 @@ -445,7 +503,7 @@ static int forward_query(int udpfd, unio
  	     must be NULL also. */
  	  
@@ -206,37 +204,24 @@
  	    continue;
 --- a/src/option.c
 +++ b/src/option.c
-@@ -2410,20 +2410,46 @@ static int one_opt(int option, char *arg
- 	      arg++;
+@@ -2411,6 +2411,12 @@ static int one_opt(int option, char *arg
  	    while (rebind || (end = split_chr(arg, '/')))
  	      {
--		char *domain = NULL;
--		/* elide leading dots - they are implied in the search algorithm */
--		while (*arg == '.') arg++;
--		/* # matches everything and becomes a zero length domain string */
--		if (strcmp(arg, "#") == 0)
--		  domain = "";
--		else if (strlen (arg) != 0 && !(domain = canonicalise_opt(arg)))
--		  option = '?';
-+		char *domain = NULL, *regex = NULL;
+ 		char *domain = NULL;
++		char *regex = NULL;
 +		char *real_end = arg + strlen(arg);
-+
-+		if (*arg == ':' && *(real_end - 1) == ':')
-+		  {
-+		     *(real_end - 1) = '\0';
-+		     regex = arg + 1;
-+		  }
-+		else
-+		  {
-+		    /* elide leading dots - they are implied in the search algorithm */
-+		    while (*arg == '.') arg++;
-+
-+		    /* # matches everything and becomes a zero length domain string */
-+		    if (strcmp(arg, "#") == 0)
-+		      domain = "";
-+		    else if (strlen (arg) != 0 && !(domain = canonicalise_opt(arg)))
-+		      option = '?';
-+		  }
++		if (*arg == ':' && *(real_end - 1) == ':'){
++			*(real_end - 1) = '\0';
++			regex = arg + 1;
++		}else{
+ 		/* elide leading dots - they are implied in the search algorithm */
+ 		while (*arg == '.') arg++;
+ 		/* # matches everything and becomes a zero length domain string */
+@@ -2418,12 +2424,27 @@ static int one_opt(int option, char *arg
+ 		  domain = "";
+ 		else if (strlen (arg) != 0 && !(domain = canonicalise_opt(arg)))
+ 		  ret_err(gen_err);
++		}
  		serv = opt_malloc(sizeof(struct server));
  		memset(serv, 0, sizeof(struct server));
  		serv->next = newlist;
@@ -244,27 +229,26 @@
  		serv->domain = domain;
 -		serv->flags = domain ? SERV_HAS_DOMAIN : SERV_FOR_NODOTS;
 +		serv->flags = domain || regex ? SERV_HAS_DOMAIN : SERV_FOR_NODOTS;
-+		if (regex)
-+		  {
++		if (regex){
 +#ifdef HAVE_REGEX
-+		    const char *error;
-+		    int erroff;
-+		    serv->regex = pcre_compile(regex, 0, &error, &erroff, NULL);
++			const char *error;
++			int erroff;
++			serv->regex = pcre_compile(regex, 0, &error, &erroff, NULL);
 +
-+		    if (!serv->regex)
-+		      ret_err(error);
-+		    serv->flags |= SERV_IS_REGEX;
-+		    serv->pextra = pcre_study(serv->regex, 0, &error);
++			if (!serv->regex)
++				ret_err(error);
++			serv->flags |= SERV_IS_REGEX;
++			serv->pextra = pcre_study(serv->regex, 0, &error);
 +#else
-+		    ret_err("Using a regex while server was configured without regex support!");
++			ret_err("Using a regex while server was configured without regex support!");
 +#endif
-+		  }
++		}
  		arg = end;
  		if (rebind)
  		  break;
 --- a/src/rfc1035.c
 +++ b/src/rfc1035.c
-@@ -1538,6 +1538,8 @@ size_t answer_request(struct dns_header
+@@ -1541,6 +1541,8 @@ size_t answer_request(struct dns_header
  
  		      if ((serv->flags & (SERV_HAS_DOMAIN | SERV_NO_ADDR)) != SERV_HAS_DOMAIN)
  		        continue;
@@ -275,12 +259,12 @@
  		      if (domainlen == 0 || domainlen > namelen)
 --- a/src/util.c
 +++ b/src/util.c
-@@ -339,6 +339,8 @@ int hostname_isequal(const char *a, cons
+@@ -338,7 +338,7 @@ int sa_len(union mysockaddr *addr)
+ int hostname_isequal(const char *a, const char *b)
  {
    unsigned int c1, c2;
-   
+-  
 +  if(NULL == a || NULL == b) return (NULL == a && NULL == b);
-+  
    do {
      c1 = (unsigned char) *a++;
      c2 = (unsigned char) *b++;

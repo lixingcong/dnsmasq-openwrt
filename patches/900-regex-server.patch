@@ -1,6 +1,6 @@
 --- a/Makefile
 +++ b/Makefile
-@@ -64,6 +64,8 @@ lua_libs =      `echo $(COPTS) | $(top)/
+@@ -65,6 +65,8 @@ lua_libs =      `echo $(COPTS) | $(top)/
  nettle_cflags = `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --cflags nettle hogweed`
  nettle_libs =   `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --libs nettle hogweed`
  gmp_libs =      `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC NO_GMP --copy -lgmp`
@@ -9,18 +9,18 @@
  sunos_libs =    `if uname | grep SunOS >/dev/null 2>&1; then echo -lsocket -lnsl -lposix4; fi`
  version =     -DVERSION='\"`$(top)/bld/get-version $(top)`\"'
  
-@@ -84,8 +86,8 @@ hdrs = dnsmasq.h config.h dhcp-protocol.
+@@ -85,8 +87,8 @@ hdrs = dnsmasq.h config.h dhcp-protocol.
  all : $(BUILDDIR)
  	@cd $(BUILDDIR) && $(MAKE) \
   top="$(top)" \
 - build_cflags="$(version) $(dbus_cflags) $(idn2_cflags) $(idn_cflags) $(ct_cflags) $(lua_cflags) $(nettle_cflags)" \
-- build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs) -lubox -lubus" \
+- build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs) $(ubus_libs)" \
 + build_cflags="$(version) $(dbus_cflags) $(idn2_cflags) $(idn_cflags) $(ct_cflags) $(lua_cflags) $(nettle_cflags) $(regex_cflags)" \
-+ build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs) $(regex_libs) -lubox -lubus" \
++ build_libs="$(dbus_libs) $(idn2_libs) $(idn_libs) $(ct_libs) $(lua_libs) $(sunos_libs) $(nettle_libs) $(gmp_libs) $(ubus_libs) $(regex_libs)" \
   -f $(top)/Makefile dnsmasq 
  
  mostly_clean :
-@@ -109,8 +111,8 @@ all-i18n : $(BUILDDIR)
+@@ -110,8 +112,8 @@ all-i18n : $(BUILDDIR)
  	@cd $(BUILDDIR) && $(MAKE) \
   top="$(top)" \
   i18n=-DLOCALEDIR=\'\"$(LOCALEDIR)\"\' \
@@ -33,7 +33,7 @@
  		cd $(top) && cd $(BUILDDIR) && $(MAKE) top="$(top)" -f $(top)/Makefile $${f%.po}.mo; \
 --- a/src/config.h
 +++ b/src/config.h
-@@ -169,6 +169,7 @@ RESOLVFILE
+@@ -172,6 +172,7 @@ RESOLVFILE
  #define HAVE_IPSET 
  #define HAVE_LOOP
  #define HAVE_DUMPFILE
@@ -41,7 +41,7 @@
  
  /* Build options which require external libraries.
     
-@@ -404,6 +405,10 @@ static char *compile_opts =
+@@ -407,6 +408,10 @@ static char *compile_opts =
  "no-"
  #endif
  "i18n "
@@ -54,7 +54,7 @@
  #else
 --- a/src/dnsmasq.h
 +++ b/src/dnsmasq.h
-@@ -149,6 +149,10 @@ extern int capget(cap_user_header_t head
+@@ -156,6 +156,10 @@ extern int capget(cap_user_header_t head
  #  include <nettle/nettle-meta.h>
  #endif
  
@@ -65,7 +65,7 @@
  /* daemon is function in the C library.... */
  #define daemon dnsmasq_daemon
  
-@@ -513,6 +517,7 @@ union mysockaddr {
+@@ -524,6 +528,7 @@ union mysockaddr {
  #define SERV_LOOP           8192  /* server causes forwarding loop */
  #define SERV_DO_DNSSEC     16384  /* Validate DNSSEC when using this server */
  #define SERV_GOT_TCP       32768  /* Got some data from the TCP connection */
@@ -73,7 +73,7 @@
  
  struct serverfd {
    int fd;
-@@ -539,6 +544,10 @@ struct server {
+@@ -550,6 +555,10 @@ struct server {
    u32 uid;
  #endif
    struct server *next; 
@@ -86,7 +86,7 @@
  struct ipsets {
 --- a/src/forward.c
 +++ b/src/forward.c
-@@ -147,11 +147,38 @@ static unsigned int search_servers(time_
+@@ -155,11 +155,38 @@ static unsigned int search_servers(time_
        }
      else if (serv->flags & SERV_HAS_DOMAIN)
        {
@@ -130,7 +130,7 @@
  	  {
  	    if ((serv->flags & SERV_NO_REBIND) && norebind)	
  	      *norebind = 1;
-@@ -178,6 +205,11 @@ static unsigned int search_servers(time_
+@@ -186,6 +213,11 @@ static unsigned int search_servers(time_
  		if (domainlen >= matchlen)
  		  {
  		    *type = serv->flags & (SERV_HAS_DOMAIN | SERV_USE_RESOLV | SERV_NO_REBIND | SERV_DO_DNSSEC);
@@ -142,7 +142,7 @@
  		    *domain = serv->domain;
  		    matchlen = domainlen;
  		    if (serv->flags & SERV_NO_ADDR)
-@@ -229,6 +261,27 @@ static unsigned int search_servers(time_
+@@ -250,6 +282,27 @@ static unsigned int search_servers(time_
    return  flags;
  }
  
@@ -170,7 +170,7 @@
  static int forward_query(int udpfd, union mysockaddr *udpaddr,
  			 struct all_addr *dst_addr, unsigned int dst_iface,
  			 struct dns_header *header, size_t plen, time_t now, 
-@@ -307,6 +360,11 @@ static int forward_query(int udpfd, unio
+@@ -328,6 +381,11 @@ static int forward_query(int udpfd, unio
  #endif
  
        /* retry on existing query, send to all available servers  */
@@ -182,7 +182,7 @@
        domain = forward->sentto->domain;
        forward->sentto->failed_queries++;
        if (!option_bool(OPT_ORDER))
-@@ -445,7 +503,7 @@ static int forward_query(int udpfd, unio
+@@ -465,7 +523,7 @@ static int forward_query(int udpfd, unio
  	     must be NULL also. */
  	  
  	  if (type == (start->flags & SERV_TYPE) &&
@@ -204,7 +204,7 @@
  	    continue;
 --- a/src/option.c
 +++ b/src/option.c
-@@ -2411,6 +2411,12 @@ static int one_opt(int option, char *arg
+@@ -2417,6 +2417,12 @@ static int one_opt(int option, char *arg
  	    while (rebind || (end = split_chr(arg, '/')))
  	      {
  		char *domain = NULL;
@@ -217,7 +217,7 @@
  		/* elide leading dots - they are implied in the search algorithm */
  		while (*arg == '.') arg++;
  		/* # matches everything and becomes a zero length domain string */
-@@ -2418,12 +2424,27 @@ static int one_opt(int option, char *arg
+@@ -2424,12 +2430,27 @@ static int one_opt(int option, char *arg
  		  domain = "";
  		else if (strlen (arg) != 0 && !(domain = canonicalise_opt(arg)))
  		  ret_err(gen_err);
@@ -248,7 +248,7 @@
  		  break;
 --- a/src/rfc1035.c
 +++ b/src/rfc1035.c
-@@ -1541,6 +1541,8 @@ size_t answer_request(struct dns_header
+@@ -1538,6 +1538,8 @@ size_t answer_request(struct dns_header
  
  		      if ((serv->flags & (SERV_HAS_DOMAIN | SERV_NO_ADDR)) != SERV_HAS_DOMAIN)
  		        continue;
@@ -259,7 +259,7 @@
  		      if (domainlen == 0 || domainlen > namelen)
 --- a/src/util.c
 +++ b/src/util.c
-@@ -338,7 +338,7 @@ int sa_len(union mysockaddr *addr)
+@@ -349,7 +349,7 @@ int sa_len(union mysockaddr *addr)
  int hostname_isequal(const char *a, const char *b)
  {
    unsigned int c1, c2;

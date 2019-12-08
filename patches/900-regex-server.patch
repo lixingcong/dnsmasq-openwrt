@@ -253,6 +253,15 @@
  	}
      }
  #endif
+@@ -1964,7 +2042,7 @@ unsigned char *tcp_request(int confd, ti
+ 		      
+ 		      /* server for wrong domain */
+ 		      if (type != (last_server->flags & SERV_TYPE) ||
+-			  (type == SERV_HAS_DOMAIN && !hostname_isequal(domain, last_server->domain)) ||
++			  (type == SERV_HAS_DOMAIN && !match_domain_for_forward(domain, last_server)) ||
+ 			  (last_server->flags & (SERV_LITERAL_ADDRESS | SERV_LOOP)))
+ 			continue;
+ 
 --- a/src/network.c
 +++ b/src/network.c
 @@ -1512,7 +1512,7 @@ void check_servers(void)

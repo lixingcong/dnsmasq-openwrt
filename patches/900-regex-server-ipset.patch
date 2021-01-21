@@ -1,15 +1,15 @@
 --- a/Makefile
 +++ b/Makefile
-@@ -65,6 +65,8 @@ lua_libs =      `echo $(COPTS) | $(top)/
- nettle_cflags = `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --cflags nettle hogweed`
- nettle_libs =   `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC $(PKG_CONFIG) --libs nettle hogweed`
+@@ -67,6 +67,8 @@ nettle_cflags = `echo $(COPTS) | $(top)/
+ nettle_libs =   `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC     $(PKG_CONFIG) --libs 'nettle hogweed' \
+                                                         HAVE_NETTLEHASH $(PKG_CONFIG) --libs nettle`
  gmp_libs =      `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_DNSSEC NO_GMP --copy -lgmp`
 +regex_cflags =  `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_REGEX $(PKG_CONFIG) --cflags libpcre`
 +regex_libs =    `echo $(COPTS) | $(top)/bld/pkg-wrapper HAVE_REGEX $(PKG_CONFIG) --libs libpcre`
  sunos_libs =    `if uname | grep SunOS >/dev/null 2>&1; then echo -lsocket -lnsl -lposix4; fi`
  version =     -DVERSION='\"`$(top)/bld/get-version $(top)`\"'
  
-@@ -85,8 +87,8 @@ hdrs = dnsmasq.h config.h dhcp-protocol.
+@@ -88,8 +90,8 @@ hdrs = dnsmasq.h config.h dhcp-protocol.
  all : $(BUILDDIR)
  	@cd $(BUILDDIR) && $(MAKE) \
   top="$(top)" \
@@ -20,7 +20,7 @@
   -f $(top)/Makefile dnsmasq 
  
  mostly_clean :
-@@ -110,8 +112,8 @@ all-i18n : $(BUILDDIR)
+@@ -113,8 +115,8 @@ all-i18n : $(BUILDDIR)
  	@cd $(BUILDDIR) && $(MAKE) \
   top="$(top)" \
   i18n=-DLOCALEDIR=\'\"$(LOCALEDIR)\"\' \
@@ -33,7 +33,7 @@
  		cd $(top) && cd $(BUILDDIR) && $(MAKE) top="$(top)" -f $(top)/Makefile $${f%.po}.mo; \
 --- a/src/config.h
 +++ b/src/config.h
-@@ -128,7 +128,7 @@ HAVE_LOOP
+@@ -131,7 +131,7 @@ HAVE_LOOP
  
  HAVE_INOTIFY
     use the Linux inotify facility to efficiently re-read configuration files.
@@ -42,7 +42,7 @@
  NO_ID
     Don't report *.bind CHAOS info to clients, forward such requests upstream instead.
  NO_TFTP
-@@ -366,6 +366,15 @@ static char *compile_opts =
+@@ -370,6 +370,15 @@ static char *compile_opts =
  "no-"
  #endif
  "i18n "
@@ -112,7 +112,7 @@
  struct irec {
 --- a/src/forward.c
 +++ b/src/forward.c
-@@ -147,11 +147,38 @@ static unsigned int search_servers(time_
+@@ -149,11 +149,38 @@ static unsigned int search_servers(time_
        }
      else if (serv->flags & SERV_HAS_DOMAIN)
        {
@@ -156,7 +156,7 @@
  	  {
  	    if ((serv->flags & SERV_NO_REBIND) && norebind)	
  	      *norebind = 1;
-@@ -178,6 +205,11 @@ static unsigned int search_servers(time_
+@@ -180,6 +207,11 @@ static unsigned int search_servers(time_
  		if (domainlen >= matchlen)
  		  {
  		    *type = serv->flags & (SERV_HAS_DOMAIN | SERV_USE_RESOLV | SERV_NO_REBIND | SERV_DO_DNSSEC);
@@ -168,7 +168,7 @@
  		    *domain = serv->domain;
  		    matchlen = domainlen;
  		    if (serv->flags & SERV_NO_ADDR)
-@@ -238,6 +270,27 @@ static unsigned int search_servers(time_
+@@ -240,6 +272,27 @@ static unsigned int search_servers(time_
    return  flags;
  }
  
@@ -196,7 +196,7 @@
  static int forward_query(int udpfd, union mysockaddr *udpaddr,
  			 union all_addr *dst_addr, unsigned int dst_iface,
  			 struct dns_header *header, size_t plen, time_t now, 
-@@ -313,7 +366,12 @@ static int forward_query(int udpfd, unio
+@@ -324,7 +377,12 @@ static int forward_query(int udpfd, unio
  #endif
  
        /* retry on existing query, send to all available servers  */
@@ -210,7 +210,7 @@
        forward->sentto->failed_queries++;
        if (!option_bool(OPT_ORDER))
  	{
-@@ -450,7 +508,7 @@ static int forward_query(int udpfd, unio
+@@ -498,7 +556,7 @@ static int forward_query(int udpfd, unio
  	     must be NULL also. */
  	  
  	  if (type == (start->flags & SERV_TYPE) &&
@@ -219,7 +219,7 @@
  	      !(start->flags & (SERV_LITERAL_ADDRESS | SERV_LOOP)))
  	    {
  	      int fd;
-@@ -586,6 +644,21 @@ static size_t process_reply(struct dns_h
+@@ -634,6 +692,21 @@ static size_t process_reply(struct dns_h
        unsigned int matchlen = 0;
        for (ipset_pos = daemon->ipsets; ipset_pos; ipset_pos = ipset_pos->next) 
  	{
@@ -241,7 +241,7 @@
  	  unsigned int domainlen = strlen(ipset_pos->domain);
  	  char *matchstart = daemon->namebuff + namelen - domainlen;
  	  if (namelen >= domainlen && hostname_isequal(matchstart, ipset_pos->domain) &&
-@@ -595,6 +668,11 @@ static size_t process_reply(struct dns_h
+@@ -643,6 +716,11 @@ static size_t process_reply(struct dns_h
  	      matchlen = domainlen;
  	      sets = ipset_pos->sets;
  	    }
@@ -253,7 +253,7 @@
  	}
      }
  #endif
-@@ -1964,7 +2042,7 @@ unsigned char *tcp_request(int confd, ti
+@@ -2021,7 +2099,7 @@ unsigned char *tcp_request(int confd, ti
  		      
  		      /* server for wrong domain */
  		      if (type != (last_server->flags & SERV_TYPE) ||
@@ -375,7 +375,7 @@
  	 
 --- a/src/rfc1035.c
 +++ b/src/rfc1035.c
-@@ -1572,6 +1572,8 @@ size_t answer_request(struct dns_header
+@@ -1523,6 +1523,8 @@ size_t answer_request(struct dns_header
  
  		      if ((serv->flags & (SERV_HAS_DOMAIN | SERV_NO_ADDR)) != SERV_HAS_DOMAIN)
  		        continue;

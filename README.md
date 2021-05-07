@@ -1,6 +1,8 @@
 # dnsmasq-regex
 
-当前版本: v2.80
+当前分支：openwrt-21.02
+
+当前版本: v2.85
 
 # compile
 
